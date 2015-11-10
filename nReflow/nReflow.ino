@@ -218,6 +218,16 @@ void UpdateUI()
 
     Serial.print("Setpoint:");
     Serial.println(Setpoint);
+	
+	Serial.print("Input:");
+    Serial.println(Input);
+	
+	Serial.print("Output:");
+    Serial.println(Output);
+	
+	Serial.print("Heater Value:");
+    Serial.println(HeaterValue);
+	
     #endif
 	
 	//Status LEDS
