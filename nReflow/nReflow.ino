@@ -27,8 +27,9 @@ const char* version = "v0.1";
 #include <Servo.h>
 
 #define SERVO_PIN D17	
-#define SERVO_START_POSITION
-#define SERVO_END_POSITION 
+#define SERVO_START_POSITION 0
+//halfway
+#define SERVO_END_POSITION 90
 
 Servo *doorServo;
 
@@ -118,7 +119,7 @@ void setup() {
 #ifdef SERVO_DOOR
 	pinMode(SERVO_PIN, OUTPUT);
 	doorServo = new Servo();
-	doorServo->attatch(SERVO_PIN);
+	doorServo->attach(SERVO_PIN);
 #endif
 	
     max6675 = new MAX6675(D6, TEMP_CS, D5);
