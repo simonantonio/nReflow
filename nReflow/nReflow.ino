@@ -21,6 +21,19 @@ const char* version = "v0.1";
 
 #define DEBUG
 
+//#define SERVO_DOOR 
+#ifdef SERVO_DOOR
+
+#include <Servo.h>
+
+#define SERVO_PIN D17	
+#define SERVO_START_POSITION
+#define SERVO_END_POSITION 
+
+Servo *doorServo;
+
+#endif
+
 #define HEATER_PIN_1 D10
 #define HEATER_PIN_2 D11
 
@@ -101,6 +114,12 @@ void setup() {
 	digitalWrite(RUNNING_PIN, 0);
 	digitalWrite(ERROR_PIN, 0);
 	digitalWrite(HOT_PIN, 0);
+	
+#ifdef SERVO_DOOR
+	pinMode(SERVO_PIN, OUTPUT);
+	doorServo = new Servo();
+	doorServo->attatch(SERVO_PIN);
+#endif
 	
     max6675 = new MAX6675(D6, TEMP_CS, D5);
     IsRunning = false;
@@ -243,6 +262,10 @@ void UpdateUI()
 	{
 		case Idle:
 			digitalWrite(IDLE_PIN, 1);
+#ifdef SERVO_DOOR
+		//keep door servo in closed position
+		doorServo->write(SERVO_START_POSITION);
+#endif
 			break;
 		case RampToSoak:
 		case Soak:
@@ -307,6 +330,11 @@ void StateRampToSoak()
         PID_1->SetControllerDirection(DIRECT);
         PID_1->SetTunings(heaterPID.Kp, heaterPID.Ki, heaterPID.Kd);
         Setpoint = degC;
+		
+#ifdef SERVO_DOOR
+		//close the door
+		doorServo->write(SERVO_START_POSITION);
+#endif
     }
     
     updateSetpoint(reflowProfile.rampUpRate);
@@ -397,6 +425,14 @@ void StateRampDown()
         PID_1->SetControllerDirection(REVERSE);
         //PID->SetTunings(fanPID.Kp, fanPID.Ki, fanPID.Kd);
         Setpoint = reflowProfile.peakTemp - 15; // get it all going with a bit of a kick! v sluggish here otherwise, too hot too long
+		
+#ifdef SERVO_DOOR
+		//open the door - speed up cooldown 
+		//user will need to configure how far to get the right tempurature gradient
+		//to fast is bad
+		//to slow is not good either
+		doorServo->write(SERVO_END_POSITION);
+#endif
     }
     
     //todo
