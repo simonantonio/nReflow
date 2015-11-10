@@ -55,12 +55,13 @@ unsigned long peak_duration_millis = 0;
 unsigned long soak_duration_millis = 0;
 unsigned long heater_1_update_millis = 0;
 unsigned long heater_2_update_millis = 0;
+unsigned long button_last_micros = 0;
+
 //PID
 uint8_t HeaterValue;
 double Setpoint;
 double Input;
 double Output;
-
 
 
 PID_t heaterPID = { 4.00, 0.05,  2.00 };
@@ -78,11 +79,15 @@ bool stateChanged = false;
 void setup() {
     
     pinMode(BUTTON_PIN, INPUT);
+	//button should be pulled low with a 10k
     attachInterrupt(BUTTON_PIN, runModeToggle, RISING);
     
+	//make sure we have the elements turned off
     pinMode(HEATER_PIN_1, OUTPUT);
+	digitalWrite(HEATER_PIN_1, 0);
     pinMode(HEATER_PIN_2, OUTPUT);
-    
+    digitalWrite(HEATER_PIN_2, 0);
+	
 	//LEDS
 	pinMode(IDLE_PIN, OUTPUT);
 	pinMode(HEATING_PIN, OUTPUT);
@@ -90,6 +95,12 @@ void setup() {
 	pinMode(ERROR_PIN, OUTPUT);
 	pinMode(HOT_PIN, OUTPUT);
 	
+	//turn them all off
+	digitalWrite(IDLE_PIN, 0);
+	digitalWrite(HEATING_PIN, 0);
+	digitalWrite(RUNNING_PIN, 0);
+	digitalWrite(ERROR_PIN, 0);
+	digitalWrite(HOT_PIN, 0);
 	
     max6675 = new MAX6675(D6, TEMP_CS, D5);
     IsRunning = false;
@@ -133,7 +144,8 @@ void loop() {
     //How hard to drive our heaters
     PID_1->Compute();
     
-    // decides which control signal is fed to the output for this cycle
+    //if we are in a mode that requires heating 
+	//set the value, otherwise turn off the heaters
     if (   currentState != RampDown
         && currentState != CoolDown
         && currentState != Complete
@@ -237,7 +249,7 @@ void UpdateUI()
 
 void runModeToggle(void)
 {
-	if((long)(micros() - last_micros) >= 15 * 1000) {
+	if((long)(micros() - button_last_micros) >= 15 * 1000) {
 		IsRunning != IsRunning;//toggle
 		
 		if(IsRunning)
@@ -248,7 +260,7 @@ void runModeToggle(void)
 		{
 			currentState = Idle;
 		}
-		last_micros = micros();
+		button_last_micros = micros();
 	}	
 }
 
