@@ -24,6 +24,12 @@ const char* version = "v0.1";
 #define HEATER_PIN_1 D10
 #define HEATER_PIN_2 D11
 
+#define IDLE_PIN D19
+#define HEATING_PIN	D20
+#define RUNNING_PIN D21
+#define ERROR_PIN D22
+#define HOT_PIN D18
+
 #define TEMP_CS D7
 
 #define BUTTON_PIN D33
@@ -37,7 +43,10 @@ volatile bool IsRunning;
 
 //settings
 #define UI_UPDATE_RATE 1000
-#define SSR_UPDATE_RATE 100
+
+//Update rate for heaters once every 250ms
+//as the PID only updates once every 200ms
+#define SSR_UPDATE_RATE 250
 #define SSR_OFFSET 50
 
 unsigned long ui_previous_millis = 0;
@@ -74,6 +83,14 @@ void setup() {
     pinMode(HEATER_PIN_1, OUTPUT);
     pinMode(HEATER_PIN_2, OUTPUT);
     
+	//LEDS
+	pinMode(IDLE_PIN, OUTPUT);
+	pinMode(HEATING_PIN, OUTPUT);
+	pinMode(RUNNING_PIN, OUTPUT);
+	pinMode(ERROR_PIN, OUTPUT);
+	pinMode(HOT_PIN, OUTPUT);
+	
+	
     max6675 = new MAX6675(D6, TEMP_CS, D5);
     IsRunning = false;
     
@@ -190,12 +207,49 @@ void UpdateUI()
     Serial.print("Setpoint:");
     Serial.println(Setpoint);
     #endif
+	
+	//Status LEDS
+
+	//ERROR_PIN
+	if(degC >SAFE_COOL_TEMP)
+	{
+		//hot
+		digitalWrite(HOT_PIN,1);
+	}
+
+	switch(currentState)
+	{
+		case Idle:
+			digitalWrite(IDLE_PIN, 1);
+			break;
+		case RampToSoak:
+		case Soak:
+		case RampUp:
+		case Peak:
+		case RampDown:
+			digitalWrite(RUNNING_PIN,1);
+			break;
+		default:
+			digitalWrite(IDLE_PIN,0);
+			digitalWrite(RUNNING_PIN,0);
+	}
 }
 
 void runModeToggle(void)
 {
-    //TODO - debounce
-    IsRunning != IsRunning;//toggle
+	if((long)(micros() - last_micros) >= 15 * 1000) {
+		IsRunning != IsRunning;//toggle
+		
+		if(IsRunning)
+		{
+			currentState = RampToSoak;
+		}
+		else
+		{
+			currentState = Idle;
+		}
+		last_micros = micros();
+	}	
 }
 
 //increase or decrease the Target Temp
@@ -355,7 +409,9 @@ void SetHeater()
 {
     static uint8_t state = 0;
     static bool heater = false;
-        
+    
+	static bool isHeating = false;
+	
     //every 100ms
     //check duration at peak
     unsigned long currentMillis = millis();
@@ -376,13 +432,23 @@ void SetHeater()
           heater = true;
         }
     
-        digitalWrite(HEATER_PIN_1, heater);
+        digitalWrite(HEATER_PIN_1, heater);		
     }
 
     if(currentMillis - heater_2_update_millis >= (SSR_UPDATE_RATE + SSR_OFFSET))
     {
         heater_2_update_millis = currentMillis;
-        digitalWrite(HEATER_PIN_1, heater);
+        digitalWrite(HEATER_PIN_2, heater);
     }
+	
+	//if either heaters are on, set the led to on
+	if(digitalRead(HEATER_PIN_2) | digitalRead(HEATER_PIN_1))
+	{
+		digitalWrite(HEATING_PIN,1);
+	}
+	else
+	{
+		digitalWrite(HEATING_PIN,0);
+	}
 }
 
