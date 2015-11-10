@@ -1,3 +1,7 @@
+//TODO add safties
+// - check if tempurature actually got near our targets
+// - PID tune for individual oven
+
 #include <PID_v1.h>
 #include <max6675.h>
 
@@ -5,20 +9,11 @@
 
 
 /*
-* Pin Defines
-*
+* 
 * SPI for MAX6675 Temp sensor
-* MOSI - D4
-* MISO - D5
-* SCK - D6
-* CS - D7
-*
 * PWM x2 for SSR
-*
-* SPI for LCD
-*
-* Button for Start/Stop
-*
+* SPI for LCD	- TODO
+* Button for Start/Stop - ADD DEBOUNCE
 * SD Card or Wifi? - TODO
 *
 */
